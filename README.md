@@ -4,7 +4,8 @@ to tets the github
 ttry red me
 update
 
-valuesadding
+valuesaddingupdating 
+the values
 
 check
 values update

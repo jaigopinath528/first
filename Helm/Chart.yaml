@@ -1,0 +1,15 @@
+apiVersion: v1
+name: rhos-hygieia-artifactory-collector
+version: 1.0.0
+appVersion: 3.0.2
+description: Builds CSC Helm Chart for Hygieia-artifactory-collector
+maintainers:
+  - name: Jovan Ross
+    email: jovan.ross@cscglobal.com
+    githubhandle: "@jross0"
+  - name: Joshua Chung
+    email: joshua.chung@cscglobal.com
+    githubhandle: "@jchung0"
+  - name: Frankie Messina
+    email: frankie.messina@cscglobal.com
+    githubhandle: "@fmessina"

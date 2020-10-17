@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "chart.fullname" . }}
+  labels:
+    app: {{ template "chart.fullname" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name | quote }}
+spec:
+  replicas: {{ .Values.deployment.collector.replicas }}
+  revisionHistoryLimit: {{ .Values.deployment.collector.revHist }}
+  progressDeadlineSeconds: {{ .Values.deployment.collector.progressDeadlineSeconds }}
+  selector:
+    matchLabels:
+      app: {{ template "chart.fullname" . }}
+  template:
+    metadata:
+      labels:
+{{ include "csc.labels.helper" . | indent 8 }}
+        cscglobal.com/application.version: {{ .Values.collectors.artifactory.image.tag }}
+        app: {{ template "chart.fullname" . }}
+        chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        release: {{ .Release.Name | quote }}
+    spec:
+      {{- if .Values.main.workerNode.antiAffinity }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - {{ template "chart.fullname" . }}
+              topologyKey: kubernetes.io/hostname
+      {{- end }}
+      {{- if (ne .Values.main.workerNode.tenant "local") }}
+      nodeSelector:
+        {{- if eq .Values.main.workerNode.tenant "common" }}
+        tenant: common
+        {{- else if eq .Values.main.workerNode.tenant "prod" }}
+        tenant: prod
+        {{- else if eq .Values.main.workerNode.tenant "uat" }}
+        tenant: uat
+        {{- else }}
+        tenant: dev
+        {{- end }}
+      {{- end }}
+      containers:        
+        {{- if .Values.splunk.enable }}
+        - name: {{ .Values.main.application.name }}-splunk
+          image: "{{ .Values.splunk.imageName }}:{{ .Values.splunk.imageTag }}"
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+            requests:
+              memory: "224Mi"
+              cpu: "5m"
+          env:
+            - name: SPLUNK_START_ARGS
+              value: "--accept-license --answer-yes"
+            - name: SPLUNK_USER
+              value: root
+            - name: TZ
+              value: America/New_York
+          volumeMounts:
+            - name: artifactory-out
+              mountPath: {{ .Values.collectors.paths.logs }}
+              readOnly: true
+        {{- end }}
+        
+         {{- if .Values.collectors.artifactory.enable }}
+        - name: {{ .Values.main.application.name }}-artifactory-collector
+          image: "{{ .Values.collectors.artifactory.image.name}}:{{ .Values.collectors.artifactory.image.tag}}"
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "500m"
+            requests:
+              memory: "1Gi"
+              cpu: "10m"
+          volumeMounts:
+            - name: collector-config
+              mountPath: "/hygieia/artifactory"
+              subPath: hygieia-artifactory-collector.properties
+              readOnly: true
+            - name: artifactory-out
+              mountPath: "{{ .Values.collectors.paths.logs }}"
+          env: 
+            - name: spring.config.location
+              value: "/hygieia/artifactory/hygieia-artifactory-collector.properties"   
+            - name: MONGO_PORT
+              value: "27017"
+            - name: dbname
+              valueFrom:
+                configMapKeyRef:
+                  name: artifactoryconfigmap
+                  key: dbname
+            - name: dbhost
+              valueFrom:
+                configMapKeyRef:
+                  name: artifactoryconfigmap
+                  key: dbhost
+            - name: dbport
+              valueFrom:
+                configMapKeyRef:
+                  name: artifactoryconfigmap
+                  key: dbport
+            - name: dbusername
+              valueFrom:
+                configMapKeyRef:
+                  name: artifactoryconfigmap
+                  key: dbusername
+            - name: dbpassword
+              valueFrom:
+                secretKeyRef:
+                  name: dev-db-secret
+                  key: password
+        {{- end }}  
+ 
+      volumes:
+        - name: collector-config
+          configMap:
+             name: artifactoryconfigmap
+             items:
+             - key: "hygieia-artifactory-collector.properties"
+               path: "hygieia-artifactory-collector.properties"
+        {{- if .Values.splunk.enable }}
+        - name: artifactory-out
+          emptyDir: {}
+        - name: splunk-forwarder-config
+          configMap:
+            name: {{ template "chart.fullname" . }}-splunk-forwarder-config
+        {{- end }}
+      {{- if .Values.main.imagePullSecret }}
+      imagePullSecrets:
+          - name: {{ .Values.main.imagePullSecret }}
+      {{- end -}}

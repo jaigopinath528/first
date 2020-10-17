@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artifactoryconfigmap
+data:
+  # Database Name
+  dbname: dashboarddb
+  # Database HostName  default is localhost
+  dbhost: dlmongodb02a.wil.csc.local
+  # Database Port - default is 27017
+  dbport: "27017"
+  # Database Username  default is blank
+  dbusername: dbAdmin
+  # Database Password  default is blank
+  hygieia-artifactory-collector.properties: |
+  logging.file: /hygieia/logs/artifactory.log
+  artifactory.cron: 0 0/5 * * * *
+  #artifactory.servers[0].url: SUPPLIED
+  #artifactory.endpoint: SUPPLIED
+  #artifactory.servers[0].username: SUPPLIED
+  #artifactory.servers[0].apiKey: SUPPLIED
+  #artifactory.servers[0].repoAndPatterns[0].repo: SUPPLIED
+      # Artifactory server - patterns - could be multiple
+      # Artifact Regex Patterns
+      # Each artifact found is matched against the following patterns in order (first one wins)
+      # The following capture groups are available:
+      #  - group
+      #  - module
+      #  - artifact
+      #  - version
+      #  - classifier
+      #  - ext
+
+      # Matches maven artifacts of the form [org]/[module]/[version]/[filename])(.[ext])
+  #artifactory.servers[0].repoAndPatterns[0].patterns[0]: (?<group>.+)[\/](?<artifact>.+)\/(?<version>.+)\/(?<filename>.+)\.(?<ext>.+)
+      # Matches maven artifacts of the form [org]/[module]/[version]/[module]-[version]([-classifier])(.[ext])
+  #artifactory.servers[0].repoAndPatterns[0].patterns[1]: (?<group>.+)/(?<module>[^/]+)/(?<version>[^/]+)/(?<artifact>\\k<module>)-\\k<version>(-(?<classifier[^\\.]+))?(\\.(?<ext>.+))?
+      # Matches ivy files of the form [org]/[module]/[revision]/ivy-[revision](-[classifier]).xml
+  #artifactory.servers[0].repoAndPatterns[0].patterns[2]: (?<group>.+)/(?<module>[^/]+)/(?<version>[^/]+)/(?<artifact>ivy)-\\k<version>(-(?<classifier>[^\\.]+))?\\.(?<ext>xml)
+      # Matches ivy artifact files of the form [org]/[module]/[revision]/[type]/[artifact]-[revision](-[classifier])(.[ext])
+  #artifactory.servers[0].repoAndPatterns[0].patterns[3]: (?<group>.+)/(?<module>[^/]+)/(?<version>[^/]+)/(?<type>[^/]+)/(?<artifact>[^\\.-/]+)-\\k<version>(-(?<classifier>[^\\.]+))?(\\.(?<ext>.+))?
+      # Artifactory mode - possible values (ARTIFACT_BASED, REPO_BASED)
+  #artifactory.mode: ARTIFACT_BASED
+      # Collector lastUpdated offset value
+  #artifactory.offSet: "3600000"
